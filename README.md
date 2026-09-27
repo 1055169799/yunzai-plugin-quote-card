@@ -11,7 +11,7 @@ Yunzai 名言卡片生成插件：引用一条消息回复 `#名言`，生成精
 
 ```bash
 cd plugins/
-git clone https://github.com/<你的用户名>/yunzai-plugin-quote-card.git
+git clone https://github.com/Looking08/yunzai-plugin-quote-card.git
 ```
 
 > 依赖 Yunzai 自带的 puppeteer 渲染（`lib/puppeteer/puppeteer.js`），无需额外安装。
