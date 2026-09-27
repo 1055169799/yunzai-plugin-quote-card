@@ -1,6 +1,9 @@
 # quote-card（名言卡片）
 
-Yunzai 名言卡片生成插件：引用一条消息回复 `#名言`，生成精美的玻璃质感卡片。
+Yunzai 名言卡片生成插件：引用一条消息回复 `#名言`，生成精美(其实并不精美)的玻璃质感卡片。
+
+<img width="1280" height="640" alt="7910EC2BE9F87BCEA6120E05E322BC2B" src="https://github.com/user-attachments/assets/fb3b68bc-5d7e-403c-a936-25b04b1da1cc" />
+
 
 ## 安装
 
