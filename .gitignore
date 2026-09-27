@@ -1,0 +1,12 @@
+# 备份文件
+*.bak
+*.bak.*
+
+# 运行时生成的背景图（个人资源，不纳入版本控制）
+resources/backgrounds/
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
