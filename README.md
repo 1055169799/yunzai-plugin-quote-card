@@ -21,30 +21,58 @@
 
 ## 安装
 
-插件需要宿主项目自带 Chromium（jsxp 截图用）。装好 Chrome/Chromium 后，用环境变量指过去：
-
-```bash
-export JSXP_EXECUTABLE_PATH=/usr/bin/chromium-browser   # 或 macOS: /Applications/Google Chrome.app/...
-```
+> ⚠️ 只 `git clone` 到 `packages/` **不会生效**。ALemonJS 按 `package.json` 的 `apps` 列表用
+> `require.resolve` 加载插件，不会扫描 `packages/` 目录。下载之后还要「链接 + 注册」。
 
 ### 方式一：预构建产物（推荐，不用装 devDependencies）
 
-`alemonjs-release` 分支已构建好 `lib/`，装完直接可用：
+`alemonjs-release` 分支已构建好 `lib/`：
 
 ```bash
-# 在 ALemonJS 项目根目录执行
+# 1) 下载到宿主项目的 packages/
 git clone -b alemonjs-release --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
+
+# 2) 链接进 node_modules，同时装上运行期依赖 jsxp
+npm i ./packages/alemonjs-quote-card
+
+# 3) 注册到 apps（等价于在 alemon.config.yaml 里写 apps: [alemonjs-quote-card]）
+alemonc add apps alemonjs-quote-card
+
+# 4) 重启机器人
+alemonc start
 ```
 
 ### 方式二：从源码构建
 
 ```bash
+# 1) 下载源码
 git clone -b alemonjs --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
-cd ./packages/alemonjs-quote-card
-npm install && npx lvy build      # 产物在 lib/
+
+# 2) 先构建出 lib/
+cd ./packages/alemonjs-quote-card && npm install && npx lvy build && cd -
+
+# 3) 剩下的和方式一相同
+npm i ./packages/alemonjs-quote-card
+alemonc add apps alemonjs-quote-card
 ```
 
 插件自身唯一的运行期依赖是 `jsxp`（自带 react / playwright-core），`alemonjs` 以 peerDependency 声明。
+第 2 步若报 `Cannot find package 'jsxp'`，补一条 `npm i jsxp` 即可。
+
+> 用 yarn / pnpm 的话，对应 `yarn add file:./packages/alemonjs-quote-card`，
+> 或把 `"workspaces": ["packages/*"]` 写进宿主 package.json 后直接 `install`（会自动建软链）。
+
+### 浏览器（jsxp 截图用）
+
+jsxp 会自己探测本机浏览器，**通常不用配**：macOS 依次找 Google Chrome / Chromium / Edge，
+Linux 找 `chromium` / `google-chrome`，Windows 找 Program Files 下的 Chrome / Edge。
+探测不到时再用环境变量指定：
+
+```bash
+export JSXP_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+```
+
+### 启动
 
 装好后照常启动宿主项目，路由会自动注册：
 
