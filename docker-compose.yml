@@ -2,7 +2,7 @@ services:
   # OneBot 平台（对接 NapCat / Lagrange 等 QQ 协议端）
   onebot:
     build: .
-    image: alemonjs-app:latest
+    image: alemonjs-quote-card:latest
     container_name: alemonjs-onebot
     restart: unless-stopped
     command: ["node", "index.js", "--platform", "@alemonjs/onebot", "--serverPort", "17117"]
@@ -16,7 +16,7 @@ services:
 
   # QQ 官方机器人（需在 alemon.config.yaml 填 app_id / secret）
   qqbot:
-    image: alemonjs-app:latest
+    image: alemonjs-quote-card:latest
     build: .
     container_name: alemonjs-qqbot
     restart: unless-stopped

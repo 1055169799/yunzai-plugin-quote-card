@@ -1,7 +1,7 @@
 {
-  "name": "alemonjs-app",
+  "name": "alemonjs-quote-card",
   "version": "1.0.0",
-  "description": "quote-card（名言卡片）ALemonJS 版：引用一条消息生成名言卡片",
+  "description": "quote-card（名言卡片）ALemonJS 版：引用一条消息生成名言卡片，支持自定义背景与分辨率",
   "main": "lib/index.js",
   "type": "module",
   "scripts": {
