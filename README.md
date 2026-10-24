@@ -5,6 +5,12 @@ Yunzai 名言卡片生成插件：引用一条消息回复 `#名言`，生成精
 <img width="1280" height="640" alt="7910EC2BE9F87BCEA6120E05E322BC2B" src="https://github.com/user-attachments/assets/fb3b68bc-5d7e-403c-a936-25b04b1da1cc" />
 
 
+## 分支说明
+
+- `main` —— Yunzai 版（下文用法均指此版本）
+- `alemonjs` —— **ALemonJS 版**，见 [`alemonjs/`](alemonjs/)。
+  支持 OneBot（NapCat / Lagrange）与 QQ 官方机器人，自带 Docker 部署、Web 管理页（增删背景图 / 调分辨率）。
+
 ## 安装
 
 进入 Yunzai 的 `plugins` 目录，克隆本仓库：

@@ -1,0 +1,17 @@
+# 依赖与构建产物
+node_modules/
+lib/
+dist/
+
+# 本地配置（含 AppSecret / openid，切勿提交）
+alemon.config.yaml
+
+# 运行时数据：名言卡片背景、分辨率设置
+data/
+
+# NapCat 协议端的登录态与配置
+napcat/
+
+# 日志与系统文件
+*.log
+.DS_Store
