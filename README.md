@@ -47,13 +47,20 @@ docker compose up -d
 
 ## 安装到已有的 ALemonJS 项目（packages 模式）
 
-不想单独跑容器，也可以把这套代码当成一个模块放进现有机器人：
+不想单独跑容器，也可以把这套代码当成一个模块放进现有机器人。
+
+产物分支 `alemonjs-release` 已经预构建好 `lib/`，装完即用，不需要安装 devDependencies：
 
 ```bash
 # 在 alemonjs 项目根目录执行
+git clone -b alemonjs-release --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
+```
+
+想从源码改，就用源码分支并自行构建：
+
+```bash
 git clone -b alemonjs --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
-yarn install
-npx lvy build
+cd ./packages/alemonjs-quote-card && yarn install && npx lvy build
 ```
 
 启动时照常指定平台即可，路由会自动注册：
