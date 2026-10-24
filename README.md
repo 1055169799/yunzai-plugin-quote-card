@@ -5,7 +5,13 @@
 
 本仓库的 `alemonjs` 分支**只有插件本体**（`package.json` + `tsconfig.json` + `lvy.config.ts` + `src/`），
 不含 Docker、pm2、平台凭据、应用入口等部署脚手架 —— 放到任意一个 ALemonJS 2.x 项目的 `packages/` 下即可工作。
-原 Yunzai 版保留在 `main` 分支。
+
+| 分支 | 用途 |
+| --- | --- |
+| `main` | Yunzai 版（另一套实现） |
+| `alemonjs` | 本版源码 |
+| `release` | 本版的**构建产物**（`package.json` + `lib/` + README），生态市场与 `git clone` 用这个 |
+| `alemonjs-release` | 旧产物分支名，内容与 `release` 同步，仅为兼容旧链接保留 |
 
 ## 与原版（Yunzai）的差异
 
@@ -26,16 +32,16 @@
 
 ### 方式一：预构建产物（推荐，不用装 devDependencies）
 
-`alemonjs-release` 分支已构建好 `lib/`：
+产物在 **`release` 分支**（生态市场的 Git 安装约定就是 `release`，根目录带 `package.json` 与 `lib/`）：
 
 ```bash
 # 1) 下载到宿主项目的 packages/
-git clone -b alemonjs-release --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
+git clone -b release --depth=1 https://github.com/Looking08/yunzai-plugin-quote-card.git ./packages/alemonjs-quote-card
 
 # 2) 链接进 node_modules，同时装上运行期依赖 jsxp
 npm i ./packages/alemonjs-quote-card
 
-# 3) 注册到 apps（等价于在 alemon.config.yaml 里写 apps: [alemonjs-quote-card]）
+# 3) 注册到 apps（等价于在 alemon.config.yaml 里写 apps: alemonjs-quote-card: true）
 alemonc add apps alemonjs-quote-card
 
 # 4) 重启机器人
