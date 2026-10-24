@@ -16,6 +16,10 @@ git clone https://github.com/Looking08/yunzai-plugin-quote-card.git
 
 > 依赖 Yunzai 自带的 puppeteer 渲染（`lib/puppeteer/puppeteer.js`），无需额外安装。
 
+仓库带有 `package.json`（`name: yunzai-plugin-quote-card`，`version: 1.0.0`），方便插件管理器 / 插件市场识别名称与版本。
+插件入口 `index.js` 用到 Yunzai 运行时的相对路径（`../../lib/plugins/plugin.js`），所以**安装位置仍然必须是
+`plugins/<插件目录>/`**，不能只作为一个普通 npm 依赖平铺在 `node_modules` 里。
+
 ## 用法
 
 | 命令 | 说明 |

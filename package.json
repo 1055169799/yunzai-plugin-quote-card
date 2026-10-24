@@ -1,0 +1,36 @@
+{
+  "name": "yunzai-plugin-quote-card",
+  "version": "1.0.0",
+  "description": "名言卡片（quote-card）Yunzai 版：引用一条消息生成玻璃质感名言卡片，支持最多 100 个自定义背景槽位",
+  "author": "Looking08",
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "resources",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "yunzai",
+    "yunzai-plugin",
+    "trss",
+    "miao-yunzai",
+    "quote-card",
+    "名言",
+    "名言卡片"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Looking08/yunzai-plugin-quote-card.git"
+  },
+  "homepage": "https://github.com/Looking08/yunzai-plugin-quote-card#readme",
+  "bugs": "https://github.com/Looking08/yunzai-plugin-quote-card/issues",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  }
+}
