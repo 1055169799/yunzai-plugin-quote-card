@@ -1,50 +1,36 @@
-import { Router, logger } from 'alemonjs';
-import expose from './expose';
+/**
+ * alemonjs-quote-card —— 名言卡片插件（ALemonJS 版）
+ *
+ * 命令：
+ *   #名言              引用一条消息后生成名言卡片
+ *   #添加名言照片N     主人：附带图片保存为第 N 张背景
+ *   #删除名言照片N     主人：删除第 N 张背景
+ *
+ * 管理台：/app/api/quote-card/admin
+ */
+import { Router } from 'alemonjs';
 import koaRouter from 'koa-router';
 import { registerQuoteCard } from './quote-card';
 import { registerQuoteCardHttp } from './quote-card/http';
 
+// 管理台 HTTP 接口
 const r = new koaRouter({
   prefix: '/api'
 });
-
-// 简单的 HTTP 路由示例 /app/api/ping
-r.get('/ping', (ctx) => {
-  ctx.body = 'pong';
-});
-
-// 名言卡片管理台：/app/api/quote-card/admin
 registerQuoteCardHttp(r);
 
+// 消息路由
 const router = Router.create({
-  events: ['message.create', 'private.message.create'] // 选择消息创建
+  events: ['message.create', 'private.message.create']
 });
 
-const appGroup = router.group({ // 精准规则匹配，复杂度 O1，稳定 且 几乎无损耗
-  routeText: {
-    prefixes: ['/', '#', '＃', '!', '！'],   // 允许使用的前缀
-    stripPrefix: true, // 匹配时去掉前缀 
-    allowBare: true  // 允许不使用前缀 
-  }
-})
-
-appGroup.use("hello", () => import('./response/hello'))
-appGroup.use("help", () => import('./response/help'))
-
-// 名言卡片（移植自 yunzai-plugin-quote-card）
-registerQuoteCard(router)
+registerQuoteCard(router);
 
 export default defineChildren({
-  // 注册内容
   register() {
     return {
       responseRouter: router.define,
-      expose: expose,
       koaRouter: r
     };
-  },
-  // 当准备好时
-  onReady() {
-    logger.info('本地测试启动');
   }
 });
