@@ -133,6 +133,7 @@ export class QuoteCard extends plugin {
         { reg: '^#添加名言照片(\\d*)$', fnc: 'addBg' },
         { reg: '^#删除名言照片(\\d*)$', fnc: 'delBg' },
         { reg: '^#名言$', fnc: 'run' },
+        { reg: '^#名言2$', fnc: 'run2' },
       ],
     })
   }
@@ -205,6 +206,14 @@ export class QuoteCard extends plugin {
   }
 
   async run (e) {
+    return this.renderCard(e, 1)
+  }
+
+  async run2 (e) {
+    return this.renderCard(e, 2)
+  }
+
+  async renderCard (e, style) {
     if (!e.reply_id && !e.source) {
       await e.reply('⚠️ 请引用一条消息后发送 #名言')
       return true
@@ -258,7 +267,8 @@ export class QuoteCard extends plugin {
       : ''
 
     const bg = randColor()
-    const fsz = fontSize(text)
+    // 样式2 文字放大 1.25 倍
+    const fsz = style === 2 ? Math.round(fontSize(text) * 1.25) : fontSize(text)
     const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
     // 加载自定义背景（随机挑一个已设置的槽位）
@@ -291,6 +301,7 @@ export class QuoteCard extends plugin {
         text: safeText,
         fontSize: fsz,
         senderName: name || '',
+        style2: style === 2,
       })
 
       if (img) {
