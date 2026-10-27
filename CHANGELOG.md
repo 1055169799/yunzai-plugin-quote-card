@@ -1,5 +1,46 @@
 # 更新日志
 
+## v1.2.1
+
+### 修复
+
+- **QQ 官方机器人（QQBot 适配器）下 `#名言` 提示「请引用一条消息」**。
+  原先只用 `e.reply_id` / `e.source` 判断有没有引用，而 QQBot 适配器这两个字段都不设，
+  引用 id 放在 `e.ref_msg_idx` 里，导致明明引用了也被判定成没引用。
+- 引用内容改为**四级回退**统一解析（`resolveQuote`）：
+  1. `e.source` —— OneBot / icqq 直接给完整消息对象；
+  2. `e.getReply()` —— 适配器提供的查询（sqlite 后端可用，空壳会被拒绝）；
+  3. **redis 消息缓存** —— 按 `e.ref_msg_idx` 去 `wind-msg:group:<群>` /
+     `wind-msg:private:<用户>` 的 ZSET 里反查完整记录（这条能拿到真实作者）；
+  4. **原始事件摘要**（QQBot 专用兜底）—— 这是关键补齐：
+     `e.raw_event.d.msg_elements[]` 中 `message_type === 103` 的元素就是被引用消息，
+     群里它的 `content` 带正文；私聊则回落到 `parallel_message.msg_nodes[].content`。
+     这条路**不依赖任何本地缓存**，所以引用任意消息都能出图
+     （原先只靠缓存，被引用消息通常查不到，等于修不好）。
+- **QQBot 下头像显示不出来**：兜底路径补上作者信息 ——
+  作者按 `msg_elements[].author`（QQ 下发时最准，群里引用别人时靠它）
+  → 发起引用的人 → 发消息的人 逐级回落；
+  头像按 `https://q.qlogo.cn/qqapp/<机器人appid>/<openid>/0` 拼，
+  appid 依次取 `bot.info.appid` → 从 `sender.avatar` 中解析 → `self_id`
+  （注意 `self_id` 与 appid 不是同一个值，用错会 404 后静默空白）。
+- 引用元素识别增加兜底：没有 `message_type === 103` 的元素时，
+  取最后一个带 `content` 或 `attachments` 的元素
+  （与 ALemonJS 版 `quoted.ts` 的 `fromNormalizedContent` 一致）。
+- 引用的消息**只有图片没有文字**时提示「引用的消息没有文字内容」，
+  不再和「没引用」混为一谈。
+- `#添加名言照片` 的图片提取也走同一套回退，新增支持 QQBot 原始
+  `msg_elements[].attachments[].url` 形态的图片。
+
+### 说明
+
+- QQ 官方协议在引用时**通常不下发被引用消息的作者**（`msg_elements[].author` 常为空）。
+  所以兜底路径的署名和头像可能是「发起引用的那个人」：
+  **私聊一定正确**；群里引用别人的话时取决于 QQ 有没有下发 author，没下发就会串成引用者。
+  被引用消息若还在缓存里（第 3 级命中）则作者准确。
+- QQ 官方机器人默认只能收到 @它 的消息（未开「全量消息」时），
+  这类群里的普通消息不会被 bot 收到，但仍可通过第 4 级兜底正常引用成卡。
+- 消息缓存默认保留 3 天（`Bot.saveTimes`）。
+
 ## v1.2.0
 
 ### 新增指令

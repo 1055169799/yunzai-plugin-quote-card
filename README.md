@@ -109,6 +109,26 @@ git clone https://github.com/Looking08/yunzai-plugin-quote-card.git
 
 ## 说明
 
-- 引用消息的文字/图片提取基于 Yunzai 的事件模型（`e.source` / `e.getReply()`）。
+- 引用消息的文字/图片提取按四级回退：
+  `e.source` → `e.getReply()` → **redis 消息缓存**（按 `ref_msg_idx` 反查，
+  `wind-msg:group:<群>` / `wind-msg:private:<用户>` 的 ZSET）
+  → **原始事件摘要**（`raw_event.d.msg_elements[message_type=103].content`
+  或 `parallel_message.msg_nodes[].content`）。
+  后两级是为 QQ 官方机器人（QQBot 适配器）准备的 —— 它不设 `e.reply_id` / `e.source`。
 - 卡片文字过长会自动缩小字号。
 - 插件为 ESM（`"type": "module"`），要求 Node.js >= 18。
+
+### QQ 官方机器人限制
+
+1. **被引用消息的作者经常拿不到**。协议在引用时通常只下发内容，`msg_elements[].author` 为空。
+   作者按 `msg_elements[].author`（有则最准）→ 发起引用的人 → 发消息的人 逐级回落：
+   **私聊一定正确**（都是同一人），群里引用别人的话可能张冠李戴。
+   若被引用消息还在本地缓存里（第 3 级命中），作者是准确的。
+2. 头像走 `q.qlogo.cn/qqapp/<机器人appid>/<openid>/0`，appid 从 `bot.info.appid` 取，
+   **不是 `self_id`**（两者不同，用错会 404 后静默空白）。
+3. 机器人默认只能收到 @它 的消息（未开「全量消息」时），
+   这类群里的普通消息不会被 bot 收到，但仍能通过第 4 级兜底正常引用成卡。
+4. 消息缓存默认保留 3 天（`Bot.saveTimes`）。
+
+另外 QQBot 的 `user_id` 是 `appid:openid` 复合 id，不是 QQ 号；
+名片取 `sender.card`，头像用 `sender.avatar`，显示效果与 QQ 号一致。
