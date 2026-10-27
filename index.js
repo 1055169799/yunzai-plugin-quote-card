@@ -128,6 +128,56 @@ async function listBgSlots () {
   }
 }
 
+// 规范化 backgrounds 目录：仅处理图片文件（jpg/jpeg/png/webp/gif）。
+// 已符合 custom-N.ext 且 1<=N<=MAX_SLOT 的文件保持不变；
+// 其余图片文件（超范围 custom-N、旧 bg-N、任意命名）全部重命名为
+// custom-N.ext，N 取当前最小空闲槽位，保留原扩展名，避免覆盖已有规范文件。
+// 返回被重命名的文件清单 [{ from, to }]；单文件失败不影响其余文件与列表渲染。
+async function normalizeBgFiles () {
+  try {
+    const files = await fs.readdir(BG_DIR)
+    const images = []
+    const used = new Set()
+    for (const f of files) {
+      const ext = path.extname(f).slice(1).toLowerCase()
+      if (!EXT_MIME[ext]) continue
+      images.push({ name: f, ext })
+      const m = f.match(/^custom-(\d+)\./)
+      if (m) {
+        const n = parseInt(m[1], 10)
+        if (n >= 1 && n <= MAX_SLOT) used.add(n)
+      }
+    }
+    const renamed = []
+    for (const img of images) {
+      const m = img.name.match(/^custom-(\d+)\./)
+      if (m) {
+        const n = parseInt(m[1], 10)
+        if (n >= 1 && n <= MAX_SLOT) continue
+      }
+      let target = null
+      for (let i = 1; i <= MAX_SLOT; i++) {
+        if (!used.has(i)) {
+          target = i
+          break
+        }
+      }
+      if (target === null) break
+      const newName = `custom-${target}.${img.ext}`
+      try {
+        await fs.rename(path.join(BG_DIR, img.name), path.join(BG_DIR, newName))
+        used.add(target)
+        renamed.push({ from: img.name, to: newName })
+      } catch (err) {
+        logger.error(`[名言卡片] 重命名背景失败 ${img.name}: ${err.message}`)
+      }
+    }
+    return renamed
+  } catch {
+    return []
+  }
+}
+
 // 本地图片转 data URL（截图时直接内嵌，避免 file:// 加载被拦）
 async function fileToDataUrl (file) {
   try {
@@ -204,9 +254,16 @@ export class QuoteCard extends plugin {
       return true
     }
 
-    // 排号：显式指定就从它开始；否则接在现有最大槽位后面
+    // 排号：显式指定就从它开始；否则从最小空闲槽位开始连续占用
     const exist = await listBgSlots()
-    const base = startSlot || (exist.length ? exist[exist.length - 1] + 1 : 1)
+    let base
+    if (startSlot) {
+      base = startSlot
+    } else {
+      const used = new Set(exist)
+      base = 1
+      while (base <= MAX_SLOT && used.has(base)) base++
+    }
     const targets = []
     for (let i = 0; i < urls.length; i++) {
       const slot = base + i
@@ -281,6 +338,13 @@ export class QuoteCard extends plugin {
   async listBg (e) {
     const cfg = readConfig()
     if (cfg.listPublic === false && !e.isMaster) return true
+
+    // 列表前先规范化命名：将不符合 custom-N.ext（1<=N<=MAX_SLOT）的图片文件
+    // 重命名到最小空闲槽位，确保列表只展示规范文件；有重命名先提示
+    const renamed = await normalizeBgFiles()
+    if (renamed.length) {
+      await e.reply(`🔄 已自动重命名 ${renamed.length} 个图片文件`)
+    }
 
     const slots = await listBgSlots()
     if (!slots.length) {
