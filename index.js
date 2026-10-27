@@ -21,6 +21,19 @@ const BG_DIR = path.join(__dirname, 'resources', 'backgrounds')
 const PKG_FILE = path.join(__dirname, 'package.json')
 const MAX_SLOT = 100
 
+// —— 更新自检 ——
+// Yunzai 的 #全部更新（plugins/other/update.js）只认带 .git 的目录，
+// 没有就静默 continue —— 用户会以为"已经是最新"，其实从来没更新过。
+// 这里主动提示一次，避免这种情况无声发生。
+try {
+  await fs.access(path.join(__dirname, '.git'))
+} catch (_) {
+  logger.warn?.(
+    '[名言卡片] 未检测到 .git，当前不是 git 安装，Yunzai 的 #全部更新 会静默跳过本插件。\n'
+    + '  修复：在该插件目录执行 git init + 关联 origin/main（见 README「更新」一节）'
+  )
+}
+
 const COLORS = [
   '#FF6B6B', '#FF8E72', '#FFA94D', '#FFD43B', '#FF922B',
   '#F06595', '#DA77F2', '#9775FA', '#748FFC', '#4DABF7',

@@ -19,6 +19,59 @@ git clone https://github.com/Looking08/yunzai-plugin-quote-card.git
 插件入口 `index.js` 用到 Yunzai 运行时的相对路径（`../../lib/plugins/plugin.js`），所以**安装位置仍然必须是
 `plugins/<插件目录>/`**，不能只作为一个普通 npm 依赖平铺在 `node_modules` 里。
 
+## 更新
+
+Yunzai 的 `#全部更新`（`plugins/other/update.js`）**只认带 `.git` 的插件目录**，
+没有就静默跳过、连一句提示都没有。所以先确认本插件已被接管：
+
+```bash
+cd plugins/yunzai-plugin-quote-card
+
+ls -d .git                                   # 1. 必须是 git 仓库
+git rev-parse --abbrev-ref main@{upstream}   # 2. 应输出 origin/main
+git pull                                     # 3. 应输出「已经是最新的。」
+```
+
+三条都过，`#全部更新` 就会带上它。之后正常更新只要 **`#全部更新`**（主人权限），
+更新完 Yunzai 会自己重启；也可以在插件目录手动 `git pull` 再重启。
+
+### 常见问题
+
+**① `ls -d .git` 报 No such file**
+说明当初是复制目录 / 解压安装的（不是 `git clone`）。转成 git 安装，
+`config/`、`resources/backgrounds/` 这些未跟踪的用户数据会原样保留：
+
+```bash
+cd plugins/yunzai-plugin-quote-card
+git init -q
+git remote add origin https://github.com/Looking08/yunzai-plugin-quote-card.git
+git fetch -q --depth=1 origin main
+git checkout -f -B main FETCH_HEAD
+git config branch.main.remote origin
+git config branch.main.merge refs/heads/main
+git fetch -q origin main:refs/remotes/origin/main
+git pull        # 应输出「已经是最新的。」
+```
+
+**② `git pull` 报 `detected dubious ownership`**
+目录属主和运行用户不一致（常见于宿主机普通用户 `git clone`、容器内却是 root 运行）。
+加白名单即可：
+
+```bash
+git config --global --add safe.directory "$(pwd)"
+```
+
+**③ `git pull` 报 `There is no tracking information`**
+`#全部更新` 执行的是**裸 `git pull`**，必须显式建立跟踪关系：
+
+```bash
+git config branch.main.remote origin
+git config branch.main.merge refs/heads/main
+```
+
+> 插件启动时也会自检：若不是 git 安装，会在日志里打一条 warn 提示，不会静默。
+> 更新后想确认版本，发 `#名言帮助` 看图片底部的版本号。
+
 ## 用法
 
 | 命令 | 说明 | 权限 |
