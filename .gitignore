@@ -10,3 +10,6 @@ resources/backgrounds/
 Thumbs.db
 *.log
 node_modules/
+
+# 锅巴写入的插件配置
+config/

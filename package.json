@@ -1,14 +1,18 @@
 {
   "name": "yunzai-plugin-quote-card",
-  "version": "1.0.0",
-  "description": "名言卡片（quote-card）Yunzai 版：引用一条消息生成玻璃质感名言卡片，支持最多 100 个自定义背景槽位",
+  "version": "1.2.0",
+  "description": "名言卡片（quote-card）Yunzai 版：引用一条消息生成玻璃质感名言卡片，两种样式，最多 100 个自定义背景槽位，支持锅巴面板配置",
   "author": "Looking08",
   "license": "MIT",
+  "type": "module",
   "main": "index.js",
   "files": [
     "index.js",
+    "config.js",
+    "guoba.support.js",
     "resources",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "keywords": [

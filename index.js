@@ -1,7 +1,8 @@
 /**
  * 名言卡片生成插件
- * 引用一条消息，回复 #名言 即可生成精美卡片
- * 自定义背景：#添加名言照片1~100 + 图片；#删除名言照片1~100 删除
+ * 引用一条消息，回复 #名言 / #名言2 即可生成卡片
+ * 自定义背景：#添加名言照片1~100 + 图片；#删除名言照片1~100 删除；#名言照片列表 查看（含合并转发）
+ * 帮助：#名言帮助
  */
 
 import plugin from '../../lib/plugins/plugin.js'
@@ -9,10 +10,15 @@ import puppeteer from '../../lib/puppeteer/puppeteer.js'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { readConfig } from './config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TPL = path.join(__dirname, 'resources', 'template.html')
+const LIST_TPL = path.join(__dirname, 'resources', 'list.html')
+const HELP_TPL = path.join(__dirname, 'resources', 'help.html')
+const HELP_BG = path.join(__dirname, 'resources', 'help-bg.jpg')
 const BG_DIR = path.join(__dirname, 'resources', 'backgrounds')
+const PKG_FILE = path.join(__dirname, 'package.json')
 const MAX_SLOT = 100
 
 const COLORS = [
@@ -122,6 +128,27 @@ async function listBgSlots () {
   }
 }
 
+// 本地图片转 data URL（截图时直接内嵌，避免 file:// 加载被拦）
+async function fileToDataUrl (file) {
+  try {
+    const buf = await fs.readFile(file)
+    const ext = path.extname(file).slice(1).toLowerCase()
+    const mime = EXT_MIME[ext] || 'image/jpeg'
+    return `data:${mime};base64,${buf.toString('base64')}`
+  } catch {
+    return ''
+  }
+}
+
+async function readVersion () {
+  try {
+    const pkg = JSON.parse(await fs.readFile(PKG_FILE, 'utf8'))
+    return pkg.version || '1.0.0'
+  } catch {
+    return '1.0.0'
+  }
+}
+
 export class QuoteCard extends plugin {
   constructor () {
     super({
@@ -132,6 +159,8 @@ export class QuoteCard extends plugin {
       rule: [
         { reg: '^#添加名言照片(\\d*)$', fnc: 'addBg' },
         { reg: '^#删除名言照片(\\d*)$', fnc: 'delBg' },
+        { reg: '^#名言照片列表$', fnc: 'listBg' },
+        { reg: '^#名言帮助$', fnc: 'help' },
         { reg: '^#名言$', fnc: 'run' },
         { reg: '^#名言2$', fnc: 'run2' },
       ],
@@ -146,14 +175,20 @@ export class QuoteCard extends plugin {
     return n
   }
 
-  // 添加背景
+  // 解析指令末尾显式指定的槽位号；没写数字返回 0（表示自动排号）
+  parseExplicitSlot (e) {
+    const m = (e.msg || e.raw_message || '').trim().match(/(\d+)$/)
+    return m ? parseInt(m[1], 10) : 0
+  }
+
+  // 批量添加背景：不带数字则接在已有槽位后面依次排；带数字则从该槽位起依次占用
   async addBg (e) {
     if (!e.isMaster) {
       await e.reply('⚠️ 只有主人可以添加名言背景')
       return true
     }
-    const n = this.parseSlot(e)
-    if (n > MAX_SLOT) {
+    const startSlot = this.parseExplicitSlot(e)
+    if (startSlot > MAX_SLOT) {
       await e.reply(`⚠️ 槽位仅支持 1~${MAX_SLOT}，例如 #添加名言照片1`)
       return true
     }
@@ -165,22 +200,58 @@ export class QuoteCard extends plugin {
       if (reply) urls = getImageUrls(reply)
     }
     if (!urls.length) {
-      await e.reply('⚠️ 请附带一张图片（直接发图 + 命令，或引用一张图片）')
+      await e.reply('⚠️ 请附带图片（可一次发多张 + 命令，或引用一条带图消息）')
       return true
     }
 
-    await e.reply('⏳ 正在下载并保存背景...')
-    try {
-      const buf = await downloadImage(urls[0])
-      const type = detectType(buf)
-      await ensureBgDir()
-      await clearBgFile(n)
-      await fs.writeFile(path.join(BG_DIR, `custom-${n}.${type.ext}`), buf)
-      await e.reply(`✅ 名言照片 ${n} 已更新（${type.ext}，${Math.round(buf.length / 1024)}KB）`)
-    } catch (err) {
-      logger.error(`[名言卡片] 保存背景失败: ${err.message}`)
-      await e.reply(`❌ 保存背景失败: ${err.message.slice(0, 50)}`)
+    // 排号：显式指定就从它开始；否则接在现有最大槽位后面
+    const exist = await listBgSlots()
+    const base = startSlot || (exist.length ? exist[exist.length - 1] + 1 : 1)
+    const targets = []
+    for (let i = 0; i < urls.length; i++) {
+      const slot = base + i
+      if (slot > MAX_SLOT) break
+      targets.push(slot)
     }
+    if (!targets.length) {
+      await e.reply(`⚠️ 槽位已满（最多 ${MAX_SLOT} 个），请先删除一些再添加`)
+      return true
+    }
+
+    const dropped = urls.length - targets.length
+    await e.reply(`⏳ 正在保存 ${targets.length} 张背景...`)
+
+    const saved = []
+    const failed = []
+    for (let i = 0; i < targets.length; i++) {
+      const slot = targets[i]
+      try {
+        const buf = await downloadImage(urls[i])
+        const type = detectType(buf)
+        await ensureBgDir()
+        await clearBgFile(slot)
+        await fs.writeFile(path.join(BG_DIR, `custom-${slot}.${type.ext}`), buf)
+        saved.push({ slot, ext: type.ext, kb: Math.round(buf.length / 1024) })
+      } catch (err) {
+        logger.error(`[名言卡片] 保存背景 ${slot} 失败: ${err.message}`)
+        failed.push(slot)
+      }
+    }
+
+    if (!saved.length) {
+      await e.reply('❌ 保存背景失败，请检查图片链接是否可访问')
+      return true
+    }
+
+    const range = saved.length === 1
+      ? `#${saved[0].slot}`
+      : `#${saved[0].slot} ~ #${saved[saved.length - 1].slot}`
+    let msg = `✅ 已保存 ${saved.length} 张：${range}`
+    if (saved.length === 1) msg += `（${saved[0].ext}，${saved[0].kb}KB）`
+    if (failed.length) msg += `\n⚠️ 失败：${failed.map(n => `#${n}`).join(' ')}`
+    if (dropped > 0) msg += `\n⚠️ 槽位上限 ${MAX_SLOT}，有 ${dropped} 张未保存`
+    msg += '\n发送 #名言照片列表 可查看'
+    await e.reply(msg)
     return true
   }
 
@@ -202,6 +273,99 @@ export class QuoteCard extends plugin {
     }
     await clearBgFile(n)
     await e.reply(`🗑️ 名言照片 ${n} 已删除`)
+    return true
+  }
+
+  // 查看已有背景：合并转发，图片在前、清单在后
+  // 默认所有人可看，锅巴里关掉「照片列表允许所有人查看」后仅主人可用
+  async listBg (e) {
+    const cfg = readConfig()
+    if (cfg.listPublic === false && !e.isMaster) return true
+
+    const slots = await listBgSlots()
+    if (!slots.length) {
+      await e.reply('⚠️ 还没有设置过背景图，发一张图片并带上「#添加名言照片1」即可添加')
+      return true
+    }
+
+    const limit = Math.min(60, Math.max(4, Number(cfg.listLimit) || 24))
+    const shownSlots = slots.slice(0, limit)
+
+    const items = []
+    for (const slot of shownSlots) {
+      const file = await findBgFile(slot)
+      if (!file) continue
+      const src = await fileToDataUrl(file)
+      if (!src) continue
+      let size = ''
+      try {
+        const st = await fs.stat(file)
+        size = st.size >= 1024 * 1024
+          ? `${(st.size / 1024 / 1024).toFixed(1)}MB`
+          : `${Math.round(st.size / 1024)}KB`
+      } catch {}
+      items.push({ slot, src, size })
+    }
+
+    if (!items.length) {
+      await e.reply('⚠️ 背景图读取失败，可能文件已损坏')
+      return true
+    }
+
+    let img = null
+    try {
+      img = await puppeteer.screenshots('quote-card', {
+        tplFile: LIST_TPL,
+        saveId: `list_${Date.now()}`,
+        imgType: 'jpeg',
+        quality: 90,
+        items,
+        total: slots.length,
+        shown: items.length,
+        listPublic: cfg.listPublic !== false,
+        canEdit: Boolean(e.isMaster),
+      })
+    } catch (err) {
+      logger.error(`[名言卡片] 列表渲染失败: ${err.message}`)
+    }
+
+    // 列表本身就是一张完整的图（含总数、槽位号、删除提示），直接发图，不再包合并转发
+    if (img) {
+      await e.reply(img)
+    } else {
+      const lines = [`🗂 名言背景 共 ${slots.length} 张`]
+      lines.push(items.map(i => `#${i.slot}`).join('  '))
+      if (slots.length > items.length) lines.push(`（还有 ${slots.length - items.length} 张未展示）`)
+      if (e.isMaster) lines.push(`删除某一套： #删除名言照片N（N 为图上的序号）`)
+      await e.reply(lines.join('\n'))
+    }
+    return true
+  }
+
+  // 帮助图
+  async help (e) {
+    const bgImage = await fileToDataUrl(HELP_BG)
+    const version = await readVersion()
+    const listPublic = readConfig().listPublic !== false
+    try {
+      const img = await puppeteer.screenshots('quote-card', {
+        tplFile: HELP_TPL,
+        saveId: `help_${Date.now()}`,
+        imgType: 'jpeg',
+        quality: 92,
+        bgImage,
+        version,
+        listPublic,
+      })
+      if (img) {
+        await e.reply(img)
+      } else {
+        await e.reply('❌ 帮助图生成失败，请检查 puppeteer/chromium 是否正常')
+      }
+    } catch (err) {
+      logger.error(`[名言卡片] 帮助图渲染失败: ${err.message}`)
+      await e.reply(`❌ 帮助图生成失败: ${err.message.slice(0, 50)}`)
+    }
     return true
   }
 
@@ -271,18 +435,16 @@ export class QuoteCard extends plugin {
     const fsz = style === 2 ? Math.round(fontSize(text) * 1.25) : fontSize(text)
     const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-    // 加载自定义背景（随机挑一个已设置的槽位）
+    // 加载自定义背景（随机挑一个已设置的槽位）；锅巴里可关闭
+    const cfg = readConfig()
     let bgImage = ''
     try {
-      const slots = await listBgSlots()
-      if (slots.length) {
-        const pick = slots[Math.floor(Math.random() * slots.length)]
-        const file = await findBgFile(pick)
-        if (file) {
-          const buf = await fs.readFile(file)
-          const ext = path.extname(file).slice(1).toLowerCase()
-          const mime = EXT_MIME[ext] || 'image/jpeg'
-          bgImage = `data:${mime};base64,${buf.toString('base64')}`
+      if (cfg.randomBackground !== false) {
+        const slots = await listBgSlots()
+        if (slots.length) {
+          const pick = slots[Math.floor(Math.random() * slots.length)]
+          const file = await findBgFile(pick)
+          if (file) bgImage = await fileToDataUrl(file)
         }
       }
     } catch (err) {
@@ -290,11 +452,12 @@ export class QuoteCard extends plugin {
     }
 
     try {
+      const quality = Math.min(100, Math.max(60, Number(cfg.quality) || 92))
       const img = await puppeteer.screenshots('quote-card', {
         tplFile: TPL,
         saveId: `card_${Date.now()}`,
         imgType: 'jpeg',
-        quality: 92,
+        quality,
         bgColor: bg,
         bgImage,
         avatar,

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>名言卡片 · 帮助</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1000px;
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    background: #111;
+  }
+  .wrap {
+    position: relative;
+    width: 1000px;
+    padding: 64px 56px 48px;
+    overflow: hidden;
+  }
+  .bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      linear-gradient(180deg, rgba(12,10,4,.86) 0%, rgba(12,10,4,.9) 45%, rgba(12,10,4,.95) 100%);
+  }
+  .inner { position: relative; z-index: 2; color: #fff; }
+
+  .kicker {
+    font-size: 20px;
+    letter-spacing: 6px;
+    color: #FCC419;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    line-height: 1.15;
+    text-shadow: 0 4px 24px rgba(0,0,0,.7);
+  }
+  .lead {
+    margin-top: 18px;
+    font-size: 24px;
+    color: rgba(255,255,255,.82);
+    line-height: 1.6;
+  }
+  .rule {
+    height: 3px;
+    width: 88px;
+    background: #FCC419;
+    margin: 34px 0 30px;
+    border-radius: 2px;
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px;
+    backdrop-filter: blur(2px);
+  }
+  .cmd {
+    flex: 0 0 auto;
+    font-family: "JetBrains Mono", "Menlo", monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+    background: #FCC419;
+    border-radius: 10px;
+    padding: 8px 16px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .cmd.ghost {
+    background: rgba(255,255,255,.14);
+    color: #fff;
+  }
+  .desc { flex: 1; }
+  .desc .t { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .desc .s { font-size: 20px; color: rgba(255,255,255,.72); line-height: 1.55; }
+
+  .tip {
+    margin-top: 28px;
+    padding: 22px 24px;
+    border-left: 4px solid #FCC419;
+    background: rgba(252,196,25,.1);
+    border-radius: 0 12px 12px 0;
+    font-size: 20px;
+    line-height: 1.7;
+    color: rgba(255,255,255,.88);
+  }
+  .tip b { color: #FCC419; }
+
+  .foot {
+    margin-top: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 18px;
+    color: rgba(255,255,255,.5);
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.14);
+  }
+  .foot .repo { font-family: "Menlo", monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="bg" src="{{@ bgImage}}" alt="">
+  <div class="scrim"></div>
+  <div class="inner">
+    <div class="kicker">QUOTE CARD</div>
+    <h1>名言卡片<br>使用帮助</h1>
+    <div class="lead">引用别人的一句话，把它做成一张好看的卡片。</div>
+    <div class="rule"></div>
+
+    <div class="item">
+      <div class="cmd">#名言</div>
+      <div class="desc">
+        <div class="t">生成卡片 · 玻璃质感</div>
+        <div class="s">引用一条消息后发送，头像在左、彩色玻璃底，字号随文字长度自适应。</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="cmd">#名言2</div>
+      <div class="desc">
+        <div class="t">生成卡片 · 深色宽卡</div>
+        <div class="s">1680 宽深色版，头像在右、背景虚化叠底，字号放大 1.25 倍。</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="cmd ghost">#添加名言照片</div>
+      <div class="desc">
+        <div class="t">设置背景图（仅主人）</div>
+        <div class="s">一次发多张图 + 指令，自动按顺序存成槽位；也可以写 #添加名言照片N 从指定槽位开始排（上限 100）。</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="cmd ghost">#名言照片列表</div>
+      <div class="desc">
+        <div class="t">查看已有背景（{{if listPublic}}所有人可用{{else}}仅主人{{/if}}）</div>
+        <div class="s">直接发出一张缩略图总览，每张带槽位号，看哪个不顺眼就删哪个。</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="cmd ghost">#删除名言照片N</div>
+      <div class="desc">
+        <div class="t">删除背景（仅主人）</div>
+        <div class="s">清空槽位 N 的背景图，删除后该槽位不再参与随机。</div>
+      </div>
+    </div>
+
+    <div class="tip">
+      设了多张背景时，每次生成会<b>随机抽一张</b>；一张都不设就用随机纯色玻璃底。
+      图片存在插件的 <b>resources/backgrounds/</b>，不走版本控制。
+    </div>
+
+    <div class="foot">
+      <span class="repo">github.com/Looking08/yunzai-plugin-quote-card</span>
+      <span>v{{version}}</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
